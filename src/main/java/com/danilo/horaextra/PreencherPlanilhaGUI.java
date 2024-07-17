@@ -1,3 +1,5 @@
+package com.danilo.horaextra;
+
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -133,7 +135,9 @@ public class PreencherPlanilhaGUI extends JFrame {
                         abrirArquivoParaEdicao(caminhoArquivoField.getText());
                     }
                     // Adicionar informações atuais se existirem antes de gerar a planilha
-                    adicionarInformacoes();
+                    if (!entradasEstaoVazias()) {
+                        adicionarInformacoes();
+                    }
                     salvarEFecharArquivo();
                 } catch (IOException ex) {
                     ex.printStackTrace();
@@ -189,6 +193,12 @@ public class PreencherPlanilhaGUI extends JFrame {
         updateCell(sheet, linha, 21, observacao); // Observação: V(linha)
     }
 
+    private boolean entradasEstaoVazias() {
+        return entradaField.getText().isEmpty() &&
+                saidaField.getText().isEmpty() &&
+                observacaoField.getText().isEmpty();
+    }
+
     private void salvarEFecharArquivo() throws IOException {
         // Forçar a recalculação de todas as fórmulas na planilha
         workbook.setForceFormulaRecalculation(true);
@@ -200,7 +210,6 @@ public class PreencherPlanilhaGUI extends JFrame {
         try (FileOutputStream fileOut = new FileOutputStream(caminhoArquivo)) {
             workbook.write(fileOut);
         }
-        workbook.close();
 
         abrirArquivo(caminhoArquivo);
     }
