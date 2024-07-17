@@ -1,5 +1,3 @@
-package com.danilo.horaextra;
-
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -19,11 +17,17 @@ public class PreencherPlanilhaGUI extends JFrame {
     private JTextField entradaNormalField;
     private JTextField saidaNormalField;
     private JTextField salarioField;
-    private JTextField dataField;
+    private JComboBox<Integer> diaComboBox;
+    private JComboBox<String> diaSemanaComboBox;
     private JTextField entradaField;
     private JTextField saidaField;
     private JTextField observacaoField;
     private JButton gerarButton;
+    private JButton adicionarButton;
+    private JButton procurarButton;
+
+    private Workbook workbook;
+    private Sheet sheet;
 
     public PreencherPlanilhaGUI() {
         setTitle("Preencher Planilha");
@@ -32,11 +36,29 @@ public class PreencherPlanilhaGUI extends JFrame {
         setLocationRelativeTo(null);
 
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(11, 2));
+        panel.setLayout(new GridLayout(13, 2));
 
         panel.add(new JLabel("Caminho do arquivo:"));
-        caminhoArquivoField = new JTextField();
-        panel.add(caminhoArquivoField);
+
+        JPanel filePanel = new JPanel(new BorderLayout());
+        caminhoArquivoField = new JTextField("C:\\Users\\danilo.silva\\Desktop\\horasextra");
+        caminhoArquivoField.setEditable(false);
+        filePanel.add(caminhoArquivoField, BorderLayout.CENTER);
+        procurarButton = new JButton("Procurar");
+        procurarButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                int returnValue = fileChooser.showOpenDialog(null);
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    File selectedFile = fileChooser.getSelectedFile();
+                    caminhoArquivoField.setText(selectedFile.getAbsolutePath());
+                    abrirArquivoParaEdicao(selectedFile.getAbsolutePath());
+                }
+            }
+        });
+        filePanel.add(procurarButton, BorderLayout.EAST);
+        panel.add(filePanel);
 
         panel.add(new JLabel("Nome:"));
         nomeField = new JTextField();
@@ -58,9 +80,18 @@ public class PreencherPlanilhaGUI extends JFrame {
         salarioField = new JTextField();
         panel.add(salarioField);
 
-        panel.add(new JLabel("Data e dia da semana (01 domingo):"));
-        dataField = new JTextField();
-        panel.add(dataField);
+        panel.add(new JLabel("Dia:"));
+        Integer[] dias = new Integer[31];
+        for (int i = 1; i <= 31; i++) {
+            dias[i - 1] = i;
+        }
+        diaComboBox = new JComboBox<>(dias);
+        panel.add(diaComboBox);
+
+        panel.add(new JLabel("Dia da semana:"));
+        String[] diasSemana = {"domingo", "sábado", "feriado"};
+        diaSemanaComboBox = new JComboBox<>(diasSemana);
+        panel.add(diaSemanaComboBox);
 
         panel.add(new JLabel("Horário de entrada (HH:mm):"));
         entradaField = new JTextField();
@@ -74,16 +105,36 @@ public class PreencherPlanilhaGUI extends JFrame {
         observacaoField = new JTextField();
         panel.add(observacaoField);
 
+        adicionarButton = new JButton("Adicionar");
+        panel.add(adicionarButton);
+
         gerarButton = new JButton("Gerar Planilha");
         panel.add(gerarButton);
 
         add(panel);
 
+        adicionarButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    adicionarInformacoes();
+                    limparCampos();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
         gerarButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    preencherPlanilha();
+                    if (workbook == null || sheet == null) {
+                        abrirArquivoParaEdicao(caminhoArquivoField.getText());
+                    }
+                    // Adicionar informações atuais se existirem antes de gerar a planilha
+                    adicionarInformacoes();
+                    salvarEFecharArquivo();
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -91,51 +142,99 @@ public class PreencherPlanilhaGUI extends JFrame {
         });
     }
 
-    private void preencherPlanilha() throws IOException {
-        String caminhoArquivo = caminhoArquivoField.getText();
+    private void abrirArquivoParaEdicao(String caminhoArquivo) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(caminhoArquivo);
+            workbook = new XSSFWorkbook(fileInputStream);
+            sheet = workbook.getSheetAt(0);
+            fileInputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void adicionarInformacoes() throws IOException {
+        if (workbook == null || sheet == null) {
+            abrirArquivoParaEdicao(caminhoArquivoField.getText());
+        }
+
         String nome = nomeField.getText();
         String mes = mesField.getText();
         String entradaNormal = entradaNormalField.getText();
         String saidaNormal = saidaNormalField.getText();
         double salario = Double.parseDouble(salarioField.getText());
 
-        String data = dataField.getText();
-        String[] partesData = data.split(" ");
-        int dia = Integer.parseInt(partesData[0]);
-        String diaSemana = partesData[1];
+        int dia = (int) diaComboBox.getSelectedItem();
+        String diaSemana = (String) diaSemanaComboBox.getSelectedItem();
+        String data = String.format("%02d %s", dia, diaSemana);
 
         String entrada = entradaField.getText();
         String saida = saidaField.getText();
         String observacao = observacaoField.getText();
 
-        FileInputStream fileInputStream = new FileInputStream(caminhoArquivo);
-        Workbook workbook = new XSSFWorkbook(fileInputStream);
-        Sheet sheet = workbook.getSheetAt(0);
-
         // Preencher as células com os dados fornecidos
-        sheet.getRow(0).getCell(3).setCellValue(nome); // Nome: D1
-        sheet.getRow(0).getCell(3).setCellValue(mes); // Mês: D1
-        sheet.getRow(1).getCell(17).setCellValue(entradaNormal); // Horário de entrada normal: R2
-        sheet.getRow(1).getCell(18).setCellValue(saidaNormal); // Horário de saída normal: S2
-        sheet.getRow(2).getCell(4).setCellValue(salario); // Salário: E3
+        updateCell(sheet, 0, 3, nome); // Nome: D1
+        updateCell(sheet, 1, 3, mes);  // Mês: D2
+        updateCell(sheet, 1, 17, entradaNormal); // Horário de entrada normal: R2
+        updateCell(sheet, 1, 18, saidaNormal);   // Horário de saída normal: S2
+        updateCell(sheet, 2, 4, salario);        // Salário: E3
 
         // Calcular a linha correta com base no dia
         int linha = 5 + (dia - 1) * 2;
 
         // Preencher as células da linha calculada
-        sheet.getRow(linha).getCell(2).setCellValue(dia + " " + diaSemana); // Dia e dia da semana: C(linha)
-        sheet.getRow(linha).getCell(3).setCellValue(entrada); // Horário entrada: D(linha)
-        sheet.getRow(linha).getCell(4).setCellValue(saida); // Horário saída: E(linha)
-        sheet.getRow(linha).getCell(21).setCellValue(observacao); // Observação: V(linha)
+        updateCell(sheet, linha, 2, data);       // Dia e dia da semana: C(linha)
+        updateCell(sheet, linha, 3, entrada);    // Horário entrada: D(linha)
+        updateCell(sheet, linha, 4, saida);      // Horário saída: E(linha)
+        updateCell(sheet, linha, 21, observacao); // Observação: V(linha)
+    }
+
+    private void salvarEFecharArquivo() throws IOException {
+        // Forçar a recalculação de todas as fórmulas na planilha
+        workbook.setForceFormulaRecalculation(true);
+        FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+        evaluator.evaluateAll();
 
         // Salvar o arquivo atualizado
-        fileInputStream.close();
+        String caminhoArquivo = caminhoArquivoField.getText();
         try (FileOutputStream fileOut = new FileOutputStream(caminhoArquivo)) {
             workbook.write(fileOut);
         }
         workbook.close();
 
         abrirArquivo(caminhoArquivo);
+    }
+
+    private void limparCampos() {
+        diaComboBox.setSelectedIndex(0);
+        diaSemanaComboBox.setSelectedIndex(0);
+        entradaField.setText("");
+        saidaField.setText("");
+        observacaoField.setText("");
+    }
+
+    private void updateCell(Sheet sheet, int rowIndex, int colIndex, String value) {
+        Row row = sheet.getRow(rowIndex);
+        if (row == null) {
+            row = sheet.createRow(rowIndex);
+        }
+        Cell cell = row.getCell(colIndex);
+        if (cell == null) {
+            cell = row.createCell(colIndex);
+        }
+        cell.setCellValue(value);
+    }
+
+    private void updateCell(Sheet sheet, int rowIndex, int colIndex, double value) {
+        Row row = sheet.getRow(rowIndex);
+        if (row == null) {
+            row = sheet.createRow(rowIndex);
+        }
+        Cell cell = row.getCell(colIndex);
+        if (cell == null) {
+            cell = row.createCell(colIndex);
+        }
+        cell.setCellValue(value);
     }
 
     private void abrirArquivo(String caminhoArquivo) {
