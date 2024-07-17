@@ -4,10 +4,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.awt.*;
+import java.io.*;
 import java.sql.SQLOutput;
 import java.util.Scanner;
 
@@ -39,7 +37,7 @@ public class PreencherPlanilha {
         String data = sc.nextLine();
         String[] partesData = data.split(" ");
         Integer dia = Integer.parseInt(partesData[0]);
-
+        String diaSemana = partesData[1];
         System.out.println("Entrada: ");
         String entrada = sc.nextLine();
 
@@ -56,10 +54,12 @@ public class PreencherPlanilha {
                     entradaNormal,
                     saidaNormal,
                     mes,
-                    data,
+                    dia,
+                    diaSemana,
                     entrada,
                     saida,
                     observacao);
+            abrirArquivo(caminho);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,7 +67,7 @@ public class PreencherPlanilha {
         sc.close();
     }
 
-    private static void preencherPlanilha(String caminho, String nome, Double salario, String entradaNormal, String saidaNormal, String mes, String data, Integer dia, String entrada, String saida, String observacao) {
+    private static void preencherPlanilha(String caminho, String nome, Double salario, String entradaNormal, String saidaNormal, String mes, Integer dia, String diaSemana, String entrada, String saida, String observacao) {
         FileInputStream fileInputStream;
         Workbook workbook;
         Sheet sheet;
@@ -87,12 +87,12 @@ public class PreencherPlanilha {
 
         int linha = 5 + (dia - 1) * 2;
 
-        sheet.getRow(linha).getCell(2).setCellValue(nome);
-        sheet.getRow(linha).getCell(3).setCellValue(nome);
-        sheet.getRow(linha).getCell(4).setCellValue(nome);
-        sheet.getRow(linha).getCell(21).setCellValue(nome);
+        sheet.getRow(linha).getCell(2).setCellValue(dia + " " + diaSemana);
+        sheet.getRow(linha).getCell(3).setCellValue(entrada);
+        sheet.getRow(linha).getCell(4).setCellValue(saida);
+        sheet.getRow(linha).getCell(21).setCellValue(observacao);
 
-        try(FileOutputStream fileOutputStream = new FileOutputStream(caminho)) {
+        try (FileOutputStream fileOutputStream = new FileOutputStream(caminho)) {
             fileInputStream.close();
             workbook.write(fileOutputStream);
             workbook.close();
@@ -101,4 +101,25 @@ public class PreencherPlanilha {
         }
 
     }
+
+    private static void abrirArquivo(String caminho) {
+
+        try {
+            File arquivo = new File((caminho));
+            if (arquivo.exists()) {
+                if (Desktop.isDesktopSupported()) {
+                    Desktop.getDesktop().open(arquivo);
+                }
+                else {
+                    System.out.println("Abertura de arquivos não suportada no sistema.");
+                }
+            }
+            else {
+                System.out.println("Arquivo não encontrado");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
