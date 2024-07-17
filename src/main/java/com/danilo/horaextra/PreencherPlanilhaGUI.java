@@ -27,6 +27,7 @@ public class PreencherPlanilhaGUI extends JFrame {
     private JButton gerarButton;
     private JButton adicionarButton;
     private JButton procurarButton;
+    private JButton resetarButton;
 
     private Workbook workbook;
     private Sheet sheet;
@@ -38,7 +39,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         setLocationRelativeTo(null);
 
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(13, 2));
+        panel.setLayout(new GridLayout(14, 2));
 
         panel.add(new JLabel("Caminho do arquivo:"));
 
@@ -113,6 +114,9 @@ public class PreencherPlanilhaGUI extends JFrame {
         gerarButton = new JButton("Gerar Planilha");
         panel.add(gerarButton);
 
+        resetarButton = new JButton("Resetar");
+        panel.add(resetarButton);
+
         add(panel);
 
         adicionarButton.addActionListener(new ActionListener() {
@@ -139,6 +143,17 @@ public class PreencherPlanilhaGUI extends JFrame {
                         adicionarInformacoes();
                     }
                     salvarEFecharArquivo();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        resetarButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    resetarPlanilha();
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -211,6 +226,7 @@ public class PreencherPlanilhaGUI extends JFrame {
             workbook.write(fileOut);
         }
 
+        // Abrir arquivo somente se não for uma operação de reset
         abrirArquivo(caminhoArquivo);
     }
 
@@ -220,6 +236,25 @@ public class PreencherPlanilhaGUI extends JFrame {
         entradaField.setText("");
         saidaField.setText("");
         observacaoField.setText("");
+    }
+
+    private void resetarPlanilha() throws IOException {
+        if (workbook == null || sheet == null) {
+            abrirArquivoParaEdicao(caminhoArquivoField.getText());
+        }
+
+        for (int i = 5; i <= 65; i += 2) {
+            clearCell(sheet, i, 2); // Limpar Dia e dia da semana: C(linha)
+            clearCell(sheet, i, 3); // Limpar Horário entrada: D(linha)
+            clearCell(sheet, i, 4); // Limpar Horário saída: E(linha)
+            clearCell(sheet, i, 21); // Limpar Observação: V(linha)
+        }
+
+        // Salvar as mudanças após resetar, sem abrir o arquivo
+        String caminhoArquivo = caminhoArquivoField.getText();
+        try (FileOutputStream fileOut = new FileOutputStream(caminhoArquivo)) {
+            workbook.write(fileOut);
+        }
     }
 
     private void updateCell(Sheet sheet, int rowIndex, int colIndex, String value) {
@@ -232,6 +267,16 @@ public class PreencherPlanilhaGUI extends JFrame {
             cell = row.createCell(colIndex);
         }
         cell.setCellValue(value);
+    }
+
+    private void clearCell(Sheet sheet, int rowIndex, int colIndex) {
+        Row row = sheet.getRow(rowIndex);
+        if (row != null) {
+            Cell cell = row.getCell(colIndex);
+            if (cell != null) {
+                cell.setCellType(CellType.BLANK);
+            }
+        }
     }
 
     private void updateCell(Sheet sheet, int rowIndex, int colIndex, double value) {
