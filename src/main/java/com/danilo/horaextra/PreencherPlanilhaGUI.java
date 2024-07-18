@@ -3,14 +3,13 @@ package com.danilo.horaextra;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import javax.print.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.prefs.Preferences;
 
 public class PreencherPlanilhaGUI extends JFrame {
     private JTextField caminhoArquivoField;
@@ -28,23 +27,28 @@ public class PreencherPlanilhaGUI extends JFrame {
     private JButton adicionarButton;
     private JButton procurarButton;
     private JButton resetarButton;
+    private JButton imprimirButton;
 
     private Workbook workbook;
     private Sheet sheet;
 
+    private Preferences prefs;
+
     public PreencherPlanilhaGUI() {
+        prefs = Preferences.userNodeForPackage(PreencherPlanilhaGUI.class);
+
         setTitle("Preencher Planilha");
         setSize(400, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(14, 2));
+        panel.setLayout(new GridLayout(15, 2));
 
         panel.add(new JLabel("Caminho do arquivo:"));
 
         JPanel filePanel = new JPanel(new BorderLayout());
-        caminhoArquivoField = new JTextField("C:\\Users\\danilo.silva\\Desktop\\horasextra");
+        caminhoArquivoField = new JTextField(prefs.get("caminhoArquivo", ""));
         caminhoArquivoField.setEditable(false);
         filePanel.add(caminhoArquivoField, BorderLayout.CENTER);
         procurarButton = new JButton("Procurar");
@@ -56,6 +60,7 @@ public class PreencherPlanilhaGUI extends JFrame {
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = fileChooser.getSelectedFile();
                     caminhoArquivoField.setText(selectedFile.getAbsolutePath());
+                    prefs.put("caminhoArquivo", selectedFile.getAbsolutePath());
                     abrirArquivoParaEdicao(selectedFile.getAbsolutePath());
                 }
             }
@@ -64,7 +69,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         panel.add(filePanel);
 
         panel.add(new JLabel("Nome:"));
-        nomeField = new JTextField();
+        nomeField = new JTextField(prefs.get("nome", ""));
         panel.add(nomeField);
 
         panel.add(new JLabel("Mês:"));
@@ -72,15 +77,15 @@ public class PreencherPlanilhaGUI extends JFrame {
         panel.add(mesField);
 
         panel.add(new JLabel("Horário de entrada normal (HH:mm):"));
-        entradaNormalField = new JTextField();
+        entradaNormalField = new JTextField(prefs.get("entradaNormal", ""));
         panel.add(entradaNormalField);
 
         panel.add(new JLabel("Horário de saída normal (HH:mm):"));
-        saidaNormalField = new JTextField();
+        saidaNormalField = new JTextField(prefs.get("saidaNormal", ""));
         panel.add(saidaNormalField);
 
         panel.add(new JLabel("Salário:"));
-        salarioField = new JTextField();
+        salarioField = new JTextField(prefs.get("salario", ""));
         panel.add(salarioField);
 
         panel.add(new JLabel("Dia:"));
@@ -116,6 +121,9 @@ public class PreencherPlanilhaGUI extends JFrame {
 
         resetarButton = new JButton("Resetar");
         panel.add(resetarButton);
+
+        imprimirButton = new JButton("Imprimir Planilha");
+        panel.add(imprimirButton);
 
         add(panel);
 
@@ -157,6 +165,32 @@ public class PreencherPlanilhaGUI extends JFrame {
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
+            }
+        });
+
+        imprimirButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (workbook == null || sheet == null) {
+                        abrirArquivoParaEdicao(caminhoArquivoField.getText());
+                    }
+                    // Adicionar informações atuais se existirem antes de gerar a planilha
+                    if (!entradasEstaoVazias()) {
+                        adicionarInformacoes();
+                    }
+                    salvarEImprimirArquivo();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        // Salvar as preferências ao fechar o programa
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                salvarPreferencias();
             }
         });
     }
@@ -226,8 +260,24 @@ public class PreencherPlanilhaGUI extends JFrame {
             workbook.write(fileOut);
         }
 
-        // Abrir arquivo somente se não for uma operação de reset
         abrirArquivo(caminhoArquivo);
+    }
+
+    private void salvarEImprimirArquivo() throws IOException {
+        // Forçar a recalculação de todas as fórmulas na planilha
+        workbook.setForceFormulaRecalculation(true);
+        FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+        evaluator.evaluateAll();
+
+        // Salvar o arquivo atualizado
+        String caminhoArquivo = caminhoArquivoField.getText();
+        File arquivo = new File(caminhoArquivo);
+        try (FileOutputStream fileOut = new FileOutputStream(arquivo)) {
+            workbook.write(fileOut);
+        }
+
+        // Imprimir o arquivo
+        imprimirArquivo(arquivo);
     }
 
     private void limparCampos() {
@@ -306,6 +356,31 @@ public class PreencherPlanilhaGUI extends JFrame {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void imprimirArquivo(File arquivo) {
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop desktop = Desktop.getDesktop();
+                if (desktop.isSupported(Desktop.Action.PRINT)) {
+                    desktop.print(arquivo);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Impressão não suportada no sistema.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Impressão não suportada no sistema.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao imprimir o arquivo: " + e.getMessage());
+        }
+    }
+
+    private void salvarPreferencias() {
+        prefs.put("nome", nomeField.getText());
+        prefs.put("entradaNormal", entradaNormalField.getText());
+        prefs.put("saidaNormal", saidaNormalField.getText());
+        prefs.put("salario", salarioField.getText());
     }
 
     public static void main(String[] args) {
