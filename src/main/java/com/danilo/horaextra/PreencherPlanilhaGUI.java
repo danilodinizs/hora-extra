@@ -10,17 +10,15 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
-import java.text.NumberFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.prefs.Preferences;
 
 public class PreencherPlanilhaGUI extends JFrame {
     private JTextField caminhoArquivoField;
     private JTextField nomeField;
     private JComboBox<String> mesComboBox;
-    private JFormattedTextField salarioField;
+    private JTextField salarioField;
     private JComboBox<Integer> diaComboBox;
     private JComboBox<String> diaSemanaComboBox;
     private JButton entradaNormalButton;
@@ -66,7 +64,7 @@ public class PreencherPlanilhaGUI extends JFrame {
 
         // Labels
         JLabel caminhoLabel = new JLabel("Arquivo");
-        caminhoLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        caminhoLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, caminhoLabel, gbc, 0, 0);
 
         caminhoArquivoField = new JTextField(prefs.get("caminhoArquivo", ""));
@@ -95,7 +93,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, procurarButton, gbc, 3, 0);
 
         JLabel nomeLabel = new JLabel("Nome");
-        nomeLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        nomeLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, nomeLabel, gbc, 0, 1);
 
         nomeField = new JTextField(prefs.get("nome", ""));
@@ -103,11 +101,12 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, nomeField, gbc, 1, 1, 3, 1);
 
         JLabel mesLabel = new JLabel("Mês");
-        mesLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        mesLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, mesLabel, gbc, 0, 2);
 
         String[] meses = {"janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"};
         mesComboBox = new JComboBox<>(meses);
+        mesComboBox.setSelectedItem(prefs.get("mes", "janeiro"));
         mesComboBox.setPreferredSize(new Dimension(200, 25));
         addComponent(panel, mesComboBox, gbc, 1, 2, 3, 1);
 
@@ -115,7 +114,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         entradaNormalLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, entradaNormalLabel, gbc, 0, 3);
 
-        entradaNormalButton = new JButton("Entrada");
+        entradaNormalButton = new JButton(prefs.get("entradaNormalButton", "Selecione"));
         entradaNormalButton.setFont(buttonFont);
         entradaNormalButton.setBackground(buttonBackgroundColor1);
         entradaNormalButton.setForeground(buttonForegroundColor);
@@ -124,10 +123,10 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, entradaNormalButton, gbc, 1, 3, 3, 1);
 
         JLabel saidaNormalLabel = new JLabel("Horário de trabalho");
-        saidaNormalLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        saidaNormalLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, saidaNormalLabel, gbc, 0, 4);
 
-        saidaNormalButton = new JButton("Saída");
+        saidaNormalButton = new JButton(prefs.get("saidaNormalButton", "Selecione"));
         saidaNormalButton.setFont(buttonFont);
         saidaNormalButton.setBackground(buttonBackgroundColor1);
         saidaNormalButton.setForeground(buttonForegroundColor);
@@ -136,17 +135,15 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, saidaNormalButton, gbc, 1, 4, 3, 1);
 
         JLabel salarioLabel = new JLabel("Salário (R$)");
-        salarioLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        salarioLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, salarioLabel, gbc, 0, 5);
 
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
-        salarioField = new JFormattedTextField(currencyFormat);
-        salarioField.setText(prefs.get("salario", ""));
+        salarioField = new JTextField(prefs.get("salario", ""));
         salarioField.setPreferredSize(new Dimension(200, 25));
         addComponent(panel, salarioField, gbc, 1, 5, 3, 1);
 
         JLabel diaLabel = new JLabel("Dia");
-        diaLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        diaLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, diaLabel, gbc, 0, 6);
 
         Integer[] dias = new Integer[31];
@@ -158,7 +155,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, diaComboBox, gbc, 1, 6);
 
         JLabel diaSemanaLabel = new JLabel("Dia da semana");
-        diaSemanaLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        diaSemanaLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, diaSemanaLabel, gbc, 0, 7);
 
         String[] diasSemana = {"domingo", "sábado", "feriado"};
@@ -167,7 +164,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, diaSemanaComboBox, gbc, 1, 7, 3, 1);
 
         JLabel entradaLabel = new JLabel("Hora Extra");
-        entradaLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        entradaLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, entradaLabel, gbc, 0, 8);
 
         entradaButton = new JButton("Entrada");
@@ -179,7 +176,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, entradaButton, gbc, 1, 8, 3, 1);
 
         JLabel saidaLabel = new JLabel("Hora Extra");
-        saidaLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        saidaLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, saidaLabel, gbc, 0, 9);
 
         saidaButton = new JButton("Saída");
@@ -191,7 +188,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         addComponent(panel, saidaButton, gbc, 1, 9, 3, 1);
 
         JLabel observacaoLabel = new JLabel("Observação");
-        observacaoLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        observacaoLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addComponent(panel, observacaoLabel, gbc, 0, 10);
 
         observacaoField = new JTextField();
@@ -212,7 +209,7 @@ public class PreencherPlanilhaGUI extends JFrame {
         gerarButton.setPreferredSize(new Dimension(150, 30));
         addComponent(panel, gerarButton, gbc, 2, 11, 2, 1);
 
-        resetarButton = new JButton("Resetar");
+        resetarButton = new JButton("Resetar Planilha");
         resetarButton.setFont(buttonFont);
         resetarButton.setBackground(buttonBackgroundColor);
         resetarButton.setForeground(buttonForegroundColor);
@@ -523,6 +520,9 @@ public class PreencherPlanilhaGUI extends JFrame {
         prefs.put("entradaNormal", entradaNormal != null ? entradaNormal.toString() : "");
         prefs.put("saidaNormal", saidaNormal != null ? saidaNormal.toString() : "");
         prefs.put("salario", salarioField.getText());
+        prefs.put("mes", (String) mesComboBox.getSelectedItem());
+        prefs.put("entradaNormalButton", entradaNormalButton.getText());
+        prefs.put("saidaNormalButton", saidaNormalButton.getText());
     }
 
     public static void main(String[] args) {
